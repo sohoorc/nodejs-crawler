@@ -12,10 +12,11 @@ const db = mysql.createPool({
     database: "house",
     password: "123456789"
 })
+
 let currPage = 1;
 let delay = 3000;
+// 二手房列表URL 可以自行替换 如：https://bj.lianjia.com/ershoufang/
 let baseUrl = 'https://cd.lianjia.com/ershoufang/';
-
 
 function getHouseLists(url) {
     return new Promise((resolve, reject) => {
@@ -129,7 +130,10 @@ function getHouseDetails(detailUrl) {
     })
 }
 
-
+/**
+ * 获取房屋数据列表，并通过列表中取到的ID获取房屋详情
+ * @param {*} url 
+ */
 function getHouse(url) {
     console.log('当前第' + url + '页+++++++++++++++++++++++++++++++++++++');
     return getHouseLists(url).then((res) => {
