@@ -9,6 +9,9 @@ const db = mysql.createPool({
     password: "123456789"
 })
 
+/**
+ * 查询所有数据并生成json
+ */
 db.query('SELECT * FROM `house`',(err,data,fields)=>{
     if(err) throw err;
     let string = JSON.stringify(data)
