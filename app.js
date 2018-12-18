@@ -1,9 +1,8 @@
-const express = require('express');
-const app = express()
+// const express = require('express');
+// const app = express()
+// const http = require('http').Server(app)
 const request = require('request');
 const cheerio = require('cheerio');
-const http = require('http').Server(app)
-
 const mysql = require('mysql');
 
 const db = mysql.createPool({
@@ -13,9 +12,9 @@ const db = mysql.createPool({
     database: "house",
     password: "123456789"
 })
-let currPage = 1
-
-let baseUrl = 'https://cd.lianjia.com/ershoufang/'
+let currPage = 1;
+let delay = 3000;
+let baseUrl = 'https://cd.lianjia.com/ershoufang/';
 
 
 function getHouseLists(url) {
@@ -117,7 +116,7 @@ function getHouseDetails(detailUrl) {
                     // 抵押信息
                     mortgage = $transactionContent[6] ? $transactionContent[6].children[3].children[0].data.trim() : null
                 } else {
-                    throw '连接出错了！！！！！'
+                    throw '请求出错了！！！！！'
                 }
 
                 let currHouseInfo = { houseId, name, year, totalPrice, unitPrice, district, houseType, floor, coveredArea, structure, insideArea, orientation, fitment, thbl, hasElevator, property, housePurpose, isFiveYears, mortgage }
@@ -132,7 +131,7 @@ function getHouseDetails(detailUrl) {
 
 
 function getHouse(url) {
-    console.log('当前第' + url + '页+++++++++++++++++++++++++++++++++++++')
+    console.log('当前第' + url + '页+++++++++++++++++++++++++++++++++++++');
     return getHouseLists(url).then((res) => {
         ++currPage;
         let $list = cheerio.load(res, {
@@ -141,12 +140,12 @@ function getHouse(url) {
         });
         let lists = $list('.sellListContent>li.LOGCLICKDATA')
         lists.each((index, item) => {
-            let $item = $list(item)
+            let $item = $list(item);
             // 房源ID
-            let houseId = $item.find('.unitPrice').attr('data-hid')
+            let houseId = $item.find('.unitPrice').attr('data-hid');
 
-            let detailUrl = baseUrl + `${houseId}.html`
-
+            let detailUrl = baseUrl + `${houseId}.html`;
+            // 查询房源详情数据并插入到数据库中
             getHouseDetails(detailUrl).then((res) => {
                 let { houseId, name, year, totalPrice, unitPrice, district, houseType, floor, coveredArea, structure, insideArea, orientation, fitment, thbl, hasElevator, property, housePurpose, isFiveYears, mortgage } = res;
 
@@ -156,23 +155,19 @@ function getHouse(url) {
 
                 db.query(sql, function (err, data, fields) {
                     if (err) throw err;
-
-                    console.log('++++++插入数据成功',res)
+                    console.log('++++++插入数据成功', res)
                 })
             })
         })
 
-        if (currPage !== 1&&currPage<=100) {
+        if (currPage !== 1 && currPage <= 100) {
             setTimeout(() => {
                 return getHouse(baseUrl + `pg${currPage}/`)
-            }, currPage * 100)
+            }, delay)
         }
     }).catch((err) => {
-        console.log(err)
+        throw err;
     })
 }
 
 getHouse(baseUrl)
-
-
-// http.listen(3000)
