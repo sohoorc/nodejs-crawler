@@ -4,6 +4,7 @@
 const request = require('request');
 const cheerio = require('cheerio');
 const mysql = require('mysql');
+const colors = require('colors');
 
 const db = mysql.createPool({
     host: "192.168.199.156",
@@ -13,11 +14,37 @@ const db = mysql.createPool({
     password: "123456789"
 })
 
+let tableName = 'house';
 let currPage = 1;
 let delay = 3000;
 // 二手房列表URL 可以自行替换 如：https://bj.lianjia.com/ershoufang/
 let baseUrl = 'https://cd.lianjia.com/ershoufang/';
 
+/**
+ * 数据库操作
+ * @param {*} sql 
+ */
+function queryDb(sql) {
+    return new Promise((resolve, reject) => {
+        db.query(sql, function (err, data, fields) {
+            if (err) {
+                reject(err)
+                return;
+            }
+
+            if (data) {
+                resolve(data)
+            }
+
+        })
+    })
+
+}
+
+/**
+ * 获取房屋信息列表
+ * @param {*} url 
+ */
 function getHouseLists(url) {
     return new Promise((resolve, reject) => {
         request(url, (error, response, body) => {
@@ -30,6 +57,10 @@ function getHouseLists(url) {
     })
 }
 
+/**
+ * 获取房屋详情
+ * @param {*} detailUrl 
+ */
 function getHouseDetails(detailUrl) {
     return new Promise((resolve, reject) => {
         request(detailUrl, (error, response, body) => {
@@ -135,34 +166,48 @@ function getHouseDetails(detailUrl) {
  * @param {*} url 
  */
 function getHouse(url) {
-    console.log('当前第' + url + '页+++++++++++++++++++++++++++++++++++++');
-    return getHouseLists(url).then((res) => {
+    console.log(`当前第${url}页+++++++++++++++++++++++++++++++++++++`.yellow);
+    return getHouseLists(url).then(async (res) => {
         ++currPage;
         let $list = cheerio.load(res, {
             normalizeWhitespace: true,
             xmlMode: true
         });
-        let lists = $list('.sellListContent>li.LOGCLICKDATA')
-        lists.each((index, item) => {
+        let lists = $list('.sellListContent>li.LOGCLICKDATA').toArray()
+        for (item of lists) {
             let $item = $list(item);
             // 房源ID
             let houseId = $item.find('.unitPrice').attr('data-hid');
 
             let detailUrl = baseUrl + `${houseId}.html`;
             // 查询房源详情数据并插入到数据库中
-            getHouseDetails(detailUrl).then((res) => {
+            await getHouseDetails(detailUrl).then(async (res) => {
                 let { houseId, name, year, totalPrice, unitPrice, district, houseType, floor, coveredArea, structure, insideArea, orientation, fitment, thbl, hasElevator, property, housePurpose, isFiveYears, mortgage } = res;
-
                 let keys = Object.keys(res).join(",");
+                let insertSql = `INSERT INTO ${tableName}(${keys}) VALUES(${houseId}, '${name}', ${year}, ${totalPrice}, ${unitPrice}, '${district}', '${houseType}', '${floor}', ${coveredArea}, '${structure}', ${insideArea}, '${orientation}', '${fitment}', '${thbl}', '${hasElevator}', '${property}', '${housePurpose}', '${isFiveYears}', '${mortgage}')`;
+                let searchSql = `SELECT houseId FROM ${tableName} WHERE houseId = ${houseId}`
 
-                let sql = `INSERT INTO house(${keys}) VALUES(${houseId}, '${name}', ${year}, ${totalPrice}, ${unitPrice}, '${district}', '${houseType}', '${floor}', ${coveredArea}, '${structure}', ${insideArea}, '${orientation}', '${fitment}', '${thbl}', '${hasElevator}', '${property}', '${housePurpose}', '${isFiveYears}', '${mortgage}')`;
-
-                db.query(sql, function (err, data, fields) {
-                    if (err) throw err;
-                    console.log('++++++插入数据成功', res)
+                queryDb(searchSql).then((res) => {
+                    if (res.length) {
+                        let updateSql = `UPDATE ${tableName} SET totalPrice = ${totalPrice},unitPrice=${unitPrice} WHERE houseId=${houseId}`;
+                        queryDb(updateSql).then((res) => {
+                            console.log(`++++++更新数据成功++++ name:${name} 单价：${unitPrice}`.green)
+                        }).catch((err) => {
+                            throw err;
+                        })
+                        return;
+                    }
+                    
+                    queryDb(insertSql).then((res) => {
+                        console.log(`++++++插入数据成功++++ name:${name} 单价：${unitPrice}`.green)
+                    }).catch((err) => {
+                        throw err;
+                    })
+                }).catch((err) => {
+                    throw err;
                 })
             })
-        })
+        }
 
         if (currPage !== 1 && currPage <= 100) {
             setTimeout(() => {
