@@ -11,7 +11,7 @@
  Target Server Version : 100137
  File Encoding         : 65001
 
- Date: 18/12/2018 21:42:11
+ Date: 19/12/2018 22:44:38
 */
 
 SET NAMES utf8mb4;
@@ -42,7 +42,7 @@ CREATE TABLE `house` (
   `isFiveYears` varchar(6) DEFAULT NULL COMMENT '年限状态',
   `mortgage` text COMMENT '抵押信息',
   `houseId` bigint(128) NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5980 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`id`,`houseId`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 SET FOREIGN_KEY_CHECKS = 1;
