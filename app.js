@@ -186,25 +186,11 @@ function getHouse(url) {
                 let keys = Object.keys(res).join(",");
                 let insertSql = `INSERT INTO ${tableName}(${keys}) VALUES(${houseId}, '${name}', ${year}, ${totalPrice}, ${unitPrice}, '${district}', '${houseType}', '${floor}', ${coveredArea}, '${structure}', ${insideArea}, '${orientation}', '${fitment}', '${thbl}', '${hasElevator}', '${property}', '${housePurpose}', '${isFiveYears}', '${mortgage}')`;
                 let searchSql = `SELECT houseId FROM ${tableName} WHERE houseId = ${houseId}`
+                let updateSql = `UPDATE ${tableName} SET totalPrice = ${totalPrice},unitPrice=${unitPrice} WHERE houseId=${houseId}`;
 
-                queryDb(searchSql).then((res) => {
-                    if (res.length) {
-                        let updateSql = `UPDATE ${tableName} SET totalPrice = ${totalPrice},unitPrice=${unitPrice} WHERE houseId=${houseId}`;
-                        queryDb(updateSql).then((res) => {
-                            console.log(`++++++更新数据成功++++ name:${name} 单价：${unitPrice}`.green)
-                        }).catch((err) => {
-                            throw err;
-                        })
-                        return;
-                    }
-                    
-                    queryDb(insertSql).then((res) => {
-                        console.log(`++++++插入数据成功++++ name:${name} 单价：${unitPrice}`.green)
-                    }).catch((err) => {
-                        throw err;
-                    })
-                }).catch((err) => {
-                    throw err;
+                let searchData = await queryDb(searchSql)
+                await queryDb(searchData.length ? updateSql : insertSql).then((res) => {
+                    console.log(`++++++更新数据成功++++ name:${name} 单价：${unitPrice}`.green)
                 })
             })
         }
