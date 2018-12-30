@@ -3,22 +3,18 @@
 // const http = require('http').Server(app)
 const request = require('request');
 const cheerio = require('cheerio');
-const mysql = require('mysql');
+const db = require('./db').Connection();
 const colors = require('colors');
-
-const db = mysql.createPool({
-    host: "192.168.199.156",
-    port: "3306",
-    user: "root",
-    database: "house",
-    password: "123456789"
-})
 
 let tableName = 'house';
 let currPage = 1;
 let delay = 3000;
 // 二手房列表URL 可以自行替换 如：https://bj.lianjia.com/ershoufang/
 let baseUrl = 'https://cd.lianjia.com/ershoufang/';
+
+function init() {
+    
+}
 
 /**
  * 数据库操作
@@ -81,7 +77,6 @@ function getHouseDetails(detailUrl) {
                 let year = +$content.find('.houseInfo .area .subInfo').text().replace(/[^0-9.]/ig, "")
 
                 let houseId = +$content.find('.houseRecord span.info').text().replace(/[^0-9.]/ig, "")
-                // debugger
 
                 // 楼盘基本信息
                 let $introduction = $dc('#introduction')
@@ -206,3 +201,12 @@ function getHouse(url) {
 }
 
 getHouse(baseUrl)
+
+
+class HouseCrawler{
+    constructor(props) {
+        super(props);
+        
+    }
+    
+}
